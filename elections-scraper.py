@@ -20,6 +20,7 @@ codes = []
 names = []
 parties = []
 hyperlinks = []
+registered = []
 
 # cyklus dynamicky vytvára listy pre cisla a nazvy(range 1 - 4 kvoli tomu, ze tabulka je rozdelena na 3 rovnake tabulky)
 for i in range(1, 4):
@@ -39,18 +40,37 @@ for municipality_url in hyperlinks:
     response = requests.get(municipality_url)
     municipality_soup = bs(response.text, 'html.parser')
 
+    registered += [registered_voters.text.strip().replace("\xa0", " ") for registered_voters in municipality_soup.find_all("td", {"headers": "sa2"})]
+
 # cyklus dynamicky vytvára list pre politické strany(range 1 - 3 kvoli tomu, ze tabulka je rozdelena na 2 rovnake tabulky)
 for i in range(1, 3):
     parties += [party.text.strip() for party in municipality_soup.find_all("td", headers=f"t{i}sa1 t{i}sb2")]
 
-# v premennej rows su ulozene jednotlive kombinacie kodov a nazvov obci do tuplu
-rows = zip(codes, names)
-print(tuple(rows))
 
+#registered += [registered_voters.text.strip() for registered_voters in municipality_soup.find_all("td", {"headers": "sa2"})]
+#for registered_voters in municipality_soup.find_all("td", {"headers": "sa2", "data-rel": "L1"}):
+#    registered.append(registered_voters).text.strip()
+
+print(registered)
+
+"""registered = municipality_soup.find_all("td", {"headers": "sa2", "data-rel": "L1"})
+if registered:
+    print(registered)#.text.strip())
+else:
+    print("Prvok sa nenašiel.")
+"""
+
+
+
+# v premennej rows su ulozene jednotlive kombinacie kodov a nazvov obci do dvojic
+rows = zip(codes, names)
+
+# nemenna hlavicka csv
 header = ["Code", "Location", "Registered", "Envelopes", "Valid"]
 
+# zapis hlavicky spolu s vyscapovanymi nazvami stran do prveho riadku
+#zapis jednotlivych dvojic z premennej rows do prvych dvoch stlpcov
 with open("vysledky.csv", mode="w", encoding="UTF-8-sig") as new_csv:
     writer = csv.writer(new_csv, delimiter=";")
     writer.writerow(header + parties)
     writer.writerows(rows)
-
