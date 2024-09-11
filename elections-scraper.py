@@ -10,51 +10,47 @@ from bs4 import BeautifulSoup as bs
 import csv
 import sys
 
-
+#nakoniec to napíšem do jednej funkcie
 url = "https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=2&xnumnuts=2101"
-
 response = requests.get(url)
-
 soup = bs(response.text, features="html.parser")
 
+#listy, kde sa ukladajú jednotlivé dáta na uloženie do csv
+codes = []
+names = []
+parties = []
+hyperlinks = []
 
-
-cisla = []
-nazvy = []
-strany = []
-
-
-# Dynamicky vytvárame zoznamy pre cisla a nazvy
+# cyklus dynamicky vytvára listy pre cisla a nazvy(range 1 - 4 kvoli tomu, ze tabulka je rozdelena na 3 rovnake tabulky)
 for i in range(1, 4):
-    cisla += [cislo.text.strip() for cislo in soup.find_all("td", headers=f"t{i}sa1 t{i}sb1")]
-    nazvy += [nazev.text.strip() for nazev in soup.find_all("td", headers=f"t{i}sa1 t{i}sb2")]
+    codes += [cislo.text.strip() for cislo in soup.find_all("td", headers=f"t{i}sa1 t{i}sb1")]
+    names += [nazev.text.strip() for nazev in soup.find_all("td", headers=f"t{i}sa1 t{i}sb2")]
 
-riadky = soup.find_all("tr")
-
-hyperlinky = []
-
-for riadok in riadky:
-    link = riadok.find("a")
+# cyklus, ktorý prechhádza jednotlivé riadky HTML, v tagu "a" nachádza element href(relatívna URL) a pripája k základnej URL + ukladá do listu hyperlinks
+for row in soup.find_all("tr"):
+    link = row.find("a")
     if link:
         href = link['href']
-        obec_url = 'https://volby.cz/pls/ps2017nss/' + href
-        hyperlinky.append(obec_url)
-        
+        location_url = 'https://volby.cz/pls/ps2017nss/' + href
+        hyperlinks.append(location_url)  
 
+# cyklus, ktorý prechádza cez všetky adresy v hyperlinks, sťahuje ich obsah, parsuje a ukladá do premennej municipality_soup
+for municipality_url in hyperlinks:
+    response = requests.get(municipality_url)
+    municipality_soup = bs(response.text, 'html.parser')
 
-for obec_url in hyperlinky:
-    response = requests.get(obec_url)
-    obec_soup = bs(response.text, 'html.parser')
+# cyklus dynamicky vytvára list pre politické strany(range 1 - 3 kvoli tomu, ze tabulka je rozdelena na 2 rovnake tabulky)
+for i in range(1, 3):
+    parties += [party.text.strip() for party in municipality_soup.find_all("td", headers=f"t{i}sa1 t{i}sb2")]
 
-strany += [strana.text.strip() for strana in obec_soup.find_all("td", headers="t1sa1 t1sb2")]
-strany += [strana.text.strip() for strana in obec_soup.find_all("td", headers="t2sa1 t2sb2")]
+# v premennej rows su ulozene jednotlive kombinacie kodov a nazvov obci do tuplu
+rows = zip(codes, names)
+print(tuple(rows))
 
-rows = zip(cisla, nazvy)
+header = ["Code", "Location", "Registered", "Envelopes", "Valid"]
 
-header = ["Číslo", "Název", "Voliči v seznamu", "Odevzdané obálky", "Platné hlasy"]
-
-with open("vysledky.csv", mode="w", encoding="UTF-8-sig") as nove_csv:
-    zapisovac = csv.writer(nove_csv, delimiter=";")
-    zapisovac.writerow(header + strany)
-    zapisovac.writerows(rows)
+with open("vysledky.csv", mode="w", encoding="UTF-8-sig") as new_csv:
+    writer = csv.writer(new_csv, delimiter=";")
+    writer.writerow(header + parties)
+    writer.writerows(rows)
 
