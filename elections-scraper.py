@@ -11,7 +11,7 @@ import csv
 import sys
 
 #nakoniec to napíšem do jednej funkcie
-url = "https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103"
+url = "https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=1&xnumnuts=1100"
 response = requests.get(url)
 soup = bs(response.text, features="html.parser")
 
@@ -23,6 +23,7 @@ hyperlinks = []
 registered = []
 envelopes = []
 valid = []
+partial_votes = []
 
 # cyklus dynamicky vytvára listy pre cisla a nazvy(range 1 - 4 kvoli tomu, ze tabulka je rozdelena na 3 rovnake tabulky)
 for i in range(1, 4):
@@ -42,14 +43,21 @@ for municipality_url in hyperlinks:
     response = requests.get(municipality_url)
     municipality_soup = bs(response.text, 'html.parser')
 
-    # cyklus, ktorý priraduje do listu registered hodnoty z jednotlivych hyperlinkov
+    # cykly, ktoré priraduju do listov registered, envelopes a valid hodnoty z jednotlivych hyperlinkov
     registered += [registered_voters.text.strip().replace("\xa0", " ") for registered_voters in municipality_soup.find_all("td", {"headers": "sa2"})]
     envelopes += [issued_envelopes.text.strip().replace("\xa0", " ") for issued_envelopes in municipality_soup.find_all("td", {"headers": "sa3"})]
     valid += [valid_votes.text.strip().replace("\xa0", " ") for valid_votes in municipality_soup.find_all("td", {"headers": "sa6"})]
 
+    # list, do ktorého sa ukladajú hlasy pre jednotlivé strany postupne podľa obce
+    partial_votes_per_link = []
+    # cylkus, ktorý scrapuje počty hlasov pre jednotlivé strany podľa obce
+    for i in range(1, 3):
+        partial_votes_per_link += [cislo.text.strip().replace("\xa0", " ") for cislo in municipality_soup.find_all("td", headers=f"t{i}sa2 t{i}sb3") if cislo.text.strip() != "-"]
+    partial_votes.append(partial_votes_per_link)
+
 # cyklus dynamicky vytvára list pre politické strany(range 1 - 3 kvoli tomu, ze tabulka je rozdelena na 2 rovnake tabulky)
 for i in range(1, 3):
-    parties += [party.text.strip() for party in municipality_soup.find_all("td", headers=f"t{i}sa1 t{i}sb2")]
+    parties += [party.text.strip() for party in municipality_soup.find_all("td", headers=f"t{i}sa1 t{i}sb2") if party.text.strip() != "-"]
 
 
 # v premennej rows su ulozene jednotlive kombinacie kodov a nazvov obci do dvojic
@@ -59,9 +67,12 @@ rows = zip(codes, names, registered, envelopes, valid)
 header = ["Code", "Location", "Registered", "Envelopes", "Valid"]
 
 # zapis hlavicky spolu s vyscapovanymi nazvami stran do prveho riadku
-#zapis jednotlivych dvojic z premennej rows do prvych dvoch stlpcov
+# zapis jednotlivych údajov z premennej rows do prvych piatich stlpcov
+# kombinácia a spojenie rows s hlasmi pre politické strany a zápis po jednotlivých riadkoch
 with open("vysledky.csv", mode="w", encoding="UTF-8-sig") as new_csv:
     writer = csv.writer(new_csv, delimiter=";")
     writer.writerow(header+ parties)
-    writer.writerows(rows)
-    #writer.writerow(registered)
+    for row, votes in zip(rows, partial_votes):
+        writer.writerow(list(row) + votes)
+
+    
