@@ -8,9 +8,7 @@ Tento projekt slúži k extrahovaniu výsledkov z parlamentých volieb ČR v rok
 
 ## Inštalácia knižníc
 
-Knižnice, ktoré sú použité v kóde sú uložené v súbore ```python
-requirements.txt
-```. Pre inštaláciu odporúčam použiť nové virtuálne prostredie s nainštalovaným manažérom spostiť nasledovne:
+Knižnice, ktoré sú použité v kóde sú uložené v súbore `requirements.txt`. Pre inštaláciu odporúčam použiť nové virtuálne prostredie s nainštalovaným manažérom spostiť nasledovne:
 
 ```python
 $ pip3 --version                    # overim verziu manazera
