@@ -1,3 +1,4 @@
 *.pyc
 .idea/
 pracovne_prostredie/
+.DS_Store
