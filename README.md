@@ -8,7 +8,9 @@ Tento projekt slúži k extrahovaniu výsledkov z parlamentých volieb ČR v rok
 
 ## Inštalácia knižníc
 
-Knižnice, ktoré sú použité v kóde sú uložené v súbore ```python requirements.txt```. Pre inštaláciu odporúčam použiť nové virtuálne prostredie s nainštalovaným manažérom spostiť nasledovne:
+Knižnice, ktoré sú použité v kóde sú uložené v súbore ```python
+requirements.txt
+```. Pre inštaláciu odporúčam použiť nové virtuálne prostredie s nainštalovaným manažérom spostiť nasledovne:
 
 ```python
 $ pip3 --version                    # overim verziu manazera
@@ -17,20 +19,28 @@ $ pip3 install -r requirements.txt  # nainstalujem kniznice
 
 ## Spustenie projektu
 
-Spustenie súboru ```python elections-scraper.py``` v rámci príkazového riadku/terminálu požaduje dva povinné argumenty.
+Spustenie súboru ```python
+elections-scraper.py
+``` v rámci príkazového riadku/terminálu požaduje dva povinné argumenty.
 
 ```python
 python3 elections-scraper.py <odkaz-uzemneho-celku> <vysledny-subor>
 ```
 
-Následne sa vám stiahnu výsledky ako súbor s príponou ```python .csv```.
+Následne sa vám stiahnu výsledky ako súbor s príponou ```python
+.csv
+```.
 
 ## Ukážka projektu
 
 Výsledky hlasovania pre okres Prostějov:
 
-    1. argument: ```python https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103```
-    2. argument: ```python vysledky_prostejov.csv```
+    1. argument: ```python
+    https://volby.cz/pls/ps2017nss/ps32?xjazyk=CZ&xkraj=12&xnumnuts=7103
+    ```
+    2. argument: ```python
+    vysledky_prostejov.csv
+    ```
 
 Spustenie programu:
 
