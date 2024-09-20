@@ -58,7 +58,6 @@ def get_votes_data(municipality_soup):
         partial_votes_per_link += [vote.text.strip().replace("\xa0", " ") for vote in
                                    municipality_soup.find_all("td", headers=f"t{i}sa2 t{i}sb3") if
                                    vote.text.strip() != "-"]
-
     return registered, envelopes, valid, partial_votes_per_link
 
 def get_parties(soup):
@@ -85,59 +84,60 @@ def write_to_csv(filename, header, parties, rows, partial_votes):
         for row, votes in zip(rows, partial_votes):
             writer.writerow(list(row) + votes)
 
-
-if __name__ == "__main__":
+def process_input():
+    """Funkcia spracuje vstupy z príkazového riadku, očakáva 2 argumenty"""
     try:
-        # Progam očakáva 2 argumenty: URL a názov CSV súboru.
         url = sys.argv[1]
         csv_filename = sys.argv[2]
-
-        soup = get_soup(url)
-
     except IndexError:
-        # Ak chýba niektorý z argumentov, vypíše výnimku IndexError, vyprintuje hlásenie a ukončí program.
         print("Nesprávne zadané argumenty. Použitie: python skript.py <odkaz_na_stránku> <názov_csv_súboru>")
         sys.exit(1)
+    return url, csv_filename
 
-    except requests.exceptions.MissingSchema:
-        # Ak URL nie je platná, program vypíše výnimku requests.exceptions.MissingSchema, vyprintuje hlásenie a ukončí program.
-        print("Argumenty sú zadané v nesprávnom poradí. Prvý argument musí byť URL a druhý názov CSV súboru.")
-        sys.exit(1)
+def scrape_data(url):
+    """
+    Funkcia získa kódy, názvy obcí. Následne zavolá funkciu get_hyperlinks a získa odkazy na detaily o
+    jednotlivých obciach. Pomocou cyklu funkcia vyscrapuje dáta o voličoch, vydaných obálkach, platných
+    hlasoch a hlasoch pre jednotlivé plitické strany rozdelené podľa obcí zavolaním funkcie get_votes_data
+    a vráti ich ako listy.
+    """
+    soup = get_soup(url)
+    codes, names = get_codes_and_names(soup)
+    hyperlinks = get_hyperlinks(soup)
+    registered, envelopes, valid, partial_votes = [], [], [], []
 
-    else:
-        """
-        Ak je vstup v poriadku, vyprintuje sa hláška o sťahovaní dát. Spustí sa samotný program, ktorý najprv zavolá funkciu a
-        získa kódy a názvy obcí. Následne zavolá funkciu get_hyperlinks a získa odkazy na detaily o jednotlivých obciach.
-        """
+    # Cyklus na scrapovanie dát z jednotlivých odkazov
+    for municipality_url in hyperlinks:
+        municipality_soup = get_soup(municipality_url)
+        registered_voters, envelopes_issued, valid_votes, votes = get_votes_data(municipality_soup)
+        registered += registered_voters
+        envelopes += envelopes_issued
+        valid += valid_votes
+        partial_votes.append(votes)
+    return codes, names, registered, envelopes, valid, partial_votes, hyperlinks
+
+def main():
+    """
+    Hlavná funkcia, ktorá spája celý proces. Zavolá funkciu process_input, ktorá overí vstupy od užívateľa.
+    Následne je zavolaná funkcia scrape_data, ktorá získa všetky potrebné údaje a uloží ich do premenných.
+    Zavolaním funkcie get_parties sú vyscrapované názvy politických subjektov z posledného hyperlinku.
+    Všetky dáta sú nakoniec zapísané do CSV súboru.
+    """
+    url, csv_filename = process_input()
+    try:
+        soup = get_soup(url)
         print(f"STAHUJEM DATA Z VYBRANEHO URL: {url}")
 
-        codes, names = get_codes_and_names(soup)
-        hyperlinks = get_hyperlinks(soup)
-
-        registered, envelopes, valid, partial_votes = [], [], [], []
-
-        """
-        Pomocou tohto cyklu program vyscrapuje dáta o voličoch, vydaných obálkach, platných hlasoch a hlasoch
-        pre jednotlivé plitické strany rozdelené podľa obcí zavolaním funkcie get_votes_data a uloží ich do listov. 
-        """
-        for municipality_url in hyperlinks:
-            municipality_soup = get_soup(municipality_url)
-            registered_voters, envelopes_issued, valid_votes, votes = get_votes_data(municipality_soup)
-            registered += registered_voters
-            envelopes += envelopes_issued
-            valid += valid_votes
-            partial_votes.append(votes)
-
-        # Tu sú zavolaním funkcie get_parties vyscrapované názvy politických subjektov.
-        parties = get_parties(municipality_soup)
+        codes, names, registered, envelopes, valid, partial_votes, hyperlinks = scrape_data(url)
+        parties = get_parties(get_soup(hyperlinks[-1]))
         rows = zip(codes, names, registered, envelopes, valid)
         header = ["Code", "Location", "Registered", "Envelopes", "Valid"]
-
-        # Všetky dáta sú nakoniec zapísané do CSV súboru.
         write_to_csv(csv_filename, header, parties, rows, partial_votes)
+        print(f"UKLADAM DO SUBORU: {csv_filename}\nUKONCUJEM elections-scraper")
+    except requests.exceptions.MissingSchema:
+        print("Argumenty sú zadané v nesprávnom poradí. Prvý argument musí byť URL a druhý názov CSV súboru.\n"
+              "Použitie: python skript.py <odkaz_na_stránku> <názov_csv_súboru>")
+        sys.exit(1)
 
-        # Po úspešnom vyscapovaní dát a uložení do súboru CSV sa vypíše nasledovné hlásenie.
-        print(
-            f"UKLADAM DO SUBORU: {csv_filename}\n"
-            "UKONCUJEM elections-scraper"
-        )
+if __name__ == "__main__":
+    main()
