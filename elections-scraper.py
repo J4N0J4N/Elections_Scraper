@@ -11,9 +11,17 @@ import csv
 import sys
 
 def get_soup(url):
-    """Funkcia získava HTML obsah z web stránky a parsuje ho."""
-    response = requests.get(url)
-    return bs(response.text, 'html.parser')
+    """Funkcia kontroluje, či bola správne zadaná URL adresa. Ak áno, získava HTML obsah z web stránky a parsuje ho."""
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return bs(response.text, 'html.parser')
+    except requests.exceptions.MissingSchema:
+        print(f"Chyba: URL '{url}' nie je správne zadaná.")
+        sys.exit(1)
+    except requests.exceptions.RequestException as exception:
+        print(f"Chyba pri pripojení k URL '{url}': {exception}")
+        sys.exit(1)
 
 def get_codes_and_names(soup):
     """
@@ -134,9 +142,8 @@ def main():
         header = ["Code", "Location", "Registered", "Envelopes", "Valid"]
         write_to_csv(csv_filename, header, parties, rows, partial_votes)
         print(f"UKLADAM DO SUBORU: {csv_filename}\nUKONCUJEM elections-scraper")
-    except requests.exceptions.MissingSchema:
-        print("Argumenty sú zadané v nesprávnom poradí. Prvý argument musí byť URL a druhý názov CSV súboru.\n"
-              "Použitie: python skript.py <odkaz_na_stránku> <názov_csv_súboru>")
+    except requests.exceptions.RequestException as exception:
+        print(f"Nastala chyba: {exception}")
         sys.exit(1)
 
 if __name__ == "__main__":
